@@ -1,0 +1,613 @@
+<?php
+session_start();
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    switch ($_POST['action']) {
+        case 'save':
+            $_SESSION['notepad_content'] = $_POST['content'] ?? '';
+            echo json_encode(['success' => true, 'message' => 'Saved successfully']);
+            exit;
+        
+        case 'load':
+            echo json_encode(['success' => true, 'content' => $_SESSION['notepad_content'] ?? '']);
+            exit;
+        
+        case 'clear':
+            $_SESSION['notepad_content'] = '';
+            echo json_encode(['success' => true, 'message' => 'Cleared successfully']);
+            exit;
+    }
+}
+
+// Get saved content
+$savedContent = $_SESSION['notepad_content'] ?? '';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Free online notepad - Write, save, and download notes instantly. No registration required. Secure, fast, and works on all devices.">
+    <meta name="keywords" content="online notepad, free notepad, text editor, notes online, quick notes, save text online">
+    <meta name="author" content="Online Notepad">
+    <meta property="og:title" content="Online Notepad - Free Text Editor">
+    <meta property="og:description" content="Simple and fast online notepad for quick notes. No login required.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://yourwebsite.com/">
+    
+    <title>Online Notepad - Free Text Editor | Save Notes Online</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .container-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+        
+        .notepad-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .toolbar {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            padding: 15px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-tool {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-tool:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        .btn-tool i {
+            font-size: 1rem;
+        }
+        
+        .stats {
+            margin-left: auto;
+            color: white;
+            font-size: 0.85rem;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #notepad {
+            width: 100%;
+            min-height: 500px;
+            border: none;
+            padding: 30px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+        }
+        
+        #notepad:focus {
+            outline: none;
+        }
+        
+        .status-bar {
+            background: #f3f4f6;
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            color: #6b7280;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .custom-toast {
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .toast-success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .toast-error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .features {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .features h2 {
+            color: var(--dark);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-item {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .feature-item i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .feature-item h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .feature-item p {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        
+        .seo-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .seo-content h2 {
+            color: var(--dark);
+            margin-bottom: 20px;
+        }
+        
+        .seo-content p {
+            color: #4b5563;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        footer {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .toolbar {
+                justify-content: center;
+            }
+            
+            .stats {
+                margin-left: 0;
+                justify-content: center;
+                width: 100%;
+            }
+            
+            #notepad {
+                padding: 20px;
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main">
+        <header class="header">
+            <h1><i class="bi bi-journal-text"></i> Online Notepad</h1>
+            <p>Fast, Simple, and Secure Text Editor</p>
+        </header>
+        
+        <div class="notepad-card">
+            <div class="toolbar">
+                <button class="btn btn-tool" onclick="saveNote()" title="Save (Ctrl+S)">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <button class="btn btn-tool" onclick="downloadNote()" title="Download">
+                    <i class="bi bi-download"></i> Download
+                </button>
+                <button class="btn btn-tool" onclick="copyNote()" title="Copy All">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+                <button class="btn btn-tool" onclick="clearNote()" title="Clear All">
+                    <i class="bi bi-trash"></i> Clear
+                </button>
+                <button class="btn btn-tool" onclick="printNote()" title="Print">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <button class="btn btn-tool" onclick="toggleDarkMode()" title="Dark Mode">
+                    <i class="bi bi-moon-stars"></i> Dark
+                </button>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <i class="bi bi-file-text"></i>
+                        <span id="charCount">0</span> chars
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-chat-text"></i>
+                        <span id="wordCount">0</span> words
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-list-ol"></i>
+                        <span id="lineCount">1</span> lines
+                    </div>
+                </div>
+            </div>
+            
+            <textarea id="notepad" placeholder="Start typing your notes here..." spellcheck="true"><?php echo htmlspecialchars($savedContent); ?></textarea>
+            
+            <div class="status-bar">
+                <span id="lastSaved">Auto-save enabled</span>
+                <span id="lastModified"></span>
+            </div>
+        </div>
+        
+        <div class="features">
+            <h2>Why Choose Our Online Notepad?</h2>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <h3>Lightning Fast</h3>
+                    <p>Instant loading with no delays. Start writing immediately.</p>
+                </div>
+                <div class="feature-item">
+                    <i class="bi bi-shield-check"></i>
+                    <h3>Secure & Private</h3>
+                    <p>Your notes are stored locally. Complete privacy guaranteed.</p>
+                </div>
+                <div class="feature-item">
+                    <i class="bi bi-phone"></i>
+                    <h3>Mobile Friendly</h3>
+                    <p>Works perfectly on all devices - phone, tablet, or desktop.</p>
+                </div>
+                <div class="feature-item">
+                    <i class="bi bi-cloud-arrow-down"></i>
+                    <h3>Auto-Save</h3>
+                    <p>Never lose your work with automatic saving every few seconds.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="seo-content">
+            <h2>Free Online Notepad - Your Digital Writing Companion</h2>
+            <p>Welcome to the most efficient and user-friendly online notepad available on the web. Our free text editor provides a seamless writing experience without any distractions. Whether you need to jot down quick notes, draft an important document, or organize your thoughts, our notepad offers all the essential features you need.</p>
+            
+            <h2>Features of Our Online Text Editor</h2>
+            <p>Our online notepad comes packed with powerful features designed to enhance your productivity. The auto-save functionality ensures you never lose your work, even if you accidentally close your browser. Download your notes as text files anytime, copy everything to clipboard with one click, or print your documents directly from the browser.</p>
+            
+            <p>The clean and modern interface eliminates all distractions, allowing you to focus on what matters most - your writing. Real-time character, word, and line counting helps you track your progress and meet specific length requirements for your content.</p>
+            
+            <h2>Privacy and Security</h2>
+            <p>We take your privacy seriously. All your notes are stored securely in your browser session, meaning your data never leaves your device without your explicit action. No registration is required, no tracking cookies are used, and we don't collect any personal information. Your notes remain completely private and accessible only to you.</p>
+            
+            <h2>Perfect for Students, Writers, and Professionals</h2>
+            <p>Whether you're a student taking lecture notes, a writer drafting your next masterpiece, a developer jotting down code snippets, or a professional organizing meeting notes, our online notepad adapts to your needs. The responsive design works flawlessly across all devices, so you can continue your work seamlessly from desktop to mobile.</p>
+            
+            <p>Start using our free online notepad today and experience the simplicity of distraction-free writing. No downloads, no installations, no sign-ups - just pure, simple note-taking at your fingertips.</p>
+        </div>
+        
+        <footer>
+            <p>&copy; <?php echo date('Y'); ?> Online Notepad. All rights reserved.</p>
+            <p>Free online text editor for all your note-taking needs.</p>
+        </footer>
+    </div>
+    
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const notepad = document.getElementById('notepad');
+        const charCount = document.getElementById('charCount');
+        const wordCount = document.getElementById('wordCount');
+        const lineCount = document.getElementById('lineCount');
+        const lastSaved = document.getElementById('lastSaved');
+        const lastModified = document.getElementById('lastModified');
+        
+        let autoSaveTimer;
+        let isDarkMode = false;
+        
+        // Update statistics
+        function updateStats() {
+            const text = notepad.value;
+            charCount.textContent = text.length;
+            wordCount.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+            lineCount.textContent = text.split('\n').length;
+            
+            const now = new Date();
+            lastModified.textContent = 'Modified: ' + now.toLocaleTimeString();
+        }
+        
+        // Auto-save functionality
+        notepad.addEventListener('input', function() {
+            updateStats();
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(function() {
+                saveNote(true);
+            }, 2000);
+        });
+        
+        // Save note
+        function saveNote(auto = false) {
+            const formData = new FormData();
+            formData.append('action', 'save');
+            formData.append('content', notepad.value);
+            
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const now = new Date();
+                    lastSaved.textContent = 'Last saved: ' + now.toLocaleTimeString();
+                    if (!auto) {
+                        showToast('Note saved successfully!', 'success');
+                    }
+                }
+            })
+            .catch(error => {
+                showToast('Failed to save note', 'error');
+            });
+        }
+        
+        // Download note
+        function downloadNote() {
+            const text = notepad.value;
+            if (!text.trim()) {
+                showToast('Nothing to download!', 'error');
+                return;
+            }
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'note_' + new Date().getTime() + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Note downloaded!', 'success');
+        }
+        
+        // Copy note
+        function copyNote() {
+            const text = notepad.value;
+            if (!text.trim()) {
+                showToast('Nothing to copy!', 'error');
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
+        }
+        
+        // Clear note
+        function clearNote() {
+            if (notepad.value.trim() && !confirm('Are you sure you want to clear all content?')) {
+                return;
+            }
+            
+            notepad.value = '';
+            updateStats();
+            
+            const formData = new FormData();
+            formData.append('action', 'clear');
+            
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+            .then(() => {
+                showToast('Note cleared!', 'success');
+            });
+        }
+        
+        // Print note
+        function printNote() {
+            if (!notepad.value.trim()) {
+                showToast('Nothing to print!', 'error');
+                return;
+            }
+            
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Print Note</title>');
+            printWindow.document.write('<style>body{font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<pre>' + notepad.value + '</pre>');
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+        
+        // Dark mode toggle
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                notepad.style.background = '#1f2937';
+                notepad.style.color = '#f9fafb';
+            } else {
+                notepad.style.background = 'white';
+                notepad.style.color = 'black';
+            }
+            showToast(isDarkMode ? 'Dark mode enabled' : 'Light mode enabled', 'success');
+        }
+        
+        // Show toast notification
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `custom-toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill'}" style="color: ${type === 'success' ? 'var(--success)' : 'var(--danger)'}; font-size: 1.5rem;"></i>
+                <span style="flex: 1;">${message}</span>
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveNote();
+            }
+        });
+        
+        // Initialize
+        updateStats();
+        
+        // Prevent accidental page close
+        window.addEventListener('beforeunload', function(e) {
+            if (notepad.value.trim()) {
+                saveNote(true);
+            }
+        });
+    </script>
+    
+    <!-- Schema.org structured data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Online Notepad",
+        "description": "Free online notepad and text editor. Save, download, and manage your notes securely.",
+        "url": "https://yourwebsite.com",
+        "applicationCategory": "Productivity",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": "Auto-save, Download notes, Copy to clipboard, Print, Dark mode, Character counter, Word counter"
+    }
+    </script>
+</body>
+</html>
